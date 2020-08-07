@@ -68,8 +68,8 @@ ALL_STATES = {0: 'mutation', # step 0 in all models
               1: 'current', # healthy state for current
               2: 'new', # healthy state for new
               3: 'nono', # healthy state for nono
-              4: 'init adenoma', # first year of having an adenoma
-              5: 'adenoma', # had a adenoma at a csy but removed
+              4: 'init adenoma', # initial adenoma found
+              5: 'adenoma', # previously had an adenoma on last csy
               6: 'init dx stage I', # first year of having CRC stage I
               7: 'init dx stage II', # first year of having CRC stage II
               8: 'init dx stage III', # first year of having CRC stage III
@@ -81,21 +81,27 @@ ALL_STATES = {0: 'mutation', # step 0 in all models
               14: 'all cause dx', # all cause death while having cancer
               15: 'all cause', # all cause daeth while in healthy state 
               16: 'cancer death', # death from cancer
-              17: 'csy death' # death from colonoscopy screening
+              17: 'csy death', # death from colonoscopy screening
+              18: 'stage I death', # last year of life having CRC stage I
+              19: 'stage II death', # last year of lif having CRC stage II
+              20: 'stage III death', # last year of life having CRC stage III
+              21: 'stage IV death', # last year of life having CRC stage IV
+              22: 'init adv adenoma', # initial adv adenoma found
+              23: 'adv adenoma' # previously had advance adenoma on last csy
               }
 
 
 # connects between states in the model
 CONNECTIVITY = {0: [1, 2, 3], # chooses which model (current, new, nono)
-                1: [1, 4, 6, 7, 8, 9, 15, 17], 
-                2: [2, 4, 6, 7, 8, 9, 15, 17], 
+                1: [1, 4, 6, 7, 8, 9, 15, 17, 22], 
+                2: [2, 4, 6, 7, 8, 9, 15, 17, 22], 
                 3: [3, 6, 7, 8, 9, 15], 
-                4: [5, 6, 7, 8, 9, 15, 17],
-                5: [5, 6, 7, 8, 9, 15, 17],
-                6: [10, 14, 16],
-                7: [11, 14, 16],
-                8: [12, 14, 16],
-                9: [13, 14, 16],
+                4: [5, 6, 7, 8, 9, 15, 17, 22],
+                5: [5, 6, 7, 8, 9, 15, 17, 22],
+                6: [10, 14, 18],
+                7: [11, 14, 19],
+                8: [12, 14, 20],
+                9: [13, 14, 21],
                 10: [10, 14, 16],
                 11: [11, 14, 16],
                 12: [12, 14, 16],
@@ -103,7 +109,13 @@ CONNECTIVITY = {0: [1, 2, 3], # chooses which model (current, new, nono)
                 14: [14],
                 15: [15],
                 16: [16],
-                17: [17]
+                17: [17],
+                18: [16],
+                19: [16],
+                20: [16],
+                21: [16],
+                22: [6, 7, 8, 9, 15, 17, 23],
+                23: [6, 7, 8, 9, 15, 17, 23]
                 }
 
 # class that gives the parameters for a certain run

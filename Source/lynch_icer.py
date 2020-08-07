@@ -191,7 +191,9 @@ def calculate_cost_table(D_matrix, costs):
     
     cancer_states = ['init dx stage I', 'init dx stage II', 'init dx stage III',
                      'init dx stage IV', 'dx stage I', 'dx stage II', 'dx stage III',
-                     'dx stage IV']
+                     'dx stage IV', 'stage I death',
+                    'stage II death', 'stage III death', 
+                    'stage IV death']
     death_states = ['all cause dx', 'cancer death',
                     'all cause', 'csy death']
     
@@ -235,7 +237,8 @@ def calculate_LE_table(D_matrix):
     alive_states = ['mutation', 'current', 'new', 'nono', 'init adenoma', 'adenoma', 'init dx stage I',
                       'init dx stage II', 'init dx stage III', 'init dx stage IV',
                       'dx stage I', 'dx stage II', 'dx stage III', 'dx stage IV']
-    death_states = ['all cause', 'all cause dx', 'cancer death', 'csy death']
+    death_states = ['all cause', 'all cause dx', 'cancer death', 'csy death', 'stage 1 death',
+                    'stage 2 death', 'stage 3 death', 'stage 4 death']
     i = 0
     for i in range(0, len(D_matrix)):
         for col in alive_states:

@@ -287,26 +287,26 @@ def create_t_matrix(run_spec, time = ps.time, age_0 = ps.START_AGE):
 # =============================================================================
 #             CHANGE THESE PROBABILITIES
 # =============================================================================
-#            temp[names['adv adenoma'], 
-#                 names['init dx stage I']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_1']
-#            temp[names['adv adenoma'], 
-#                 names['init dx stage II']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_2']
-#            temp[names['adenoma'], 
-#                 names['init dx stage III']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_3']
-#            temp[names['adv adenoma'], 
-#                 names['init dx stage IV']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_4']
-#            
-#            temp[names['init adv adenoma'], 
-#                 names['init dx stage I']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_1']
-#            temp[names['init adv adenoma'], 
-#                 names['init dx stage II']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_2']
-#            temp[names['init adv adenoma'], 
-#                 names['init dx stage III']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_3']
-#            temp[names['init adv adenoma'], 
-#                 names['init dx stage IV']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_4']
-#
-#
-#            
+            temp[names['adv adenoma'], 
+                 names['init dx stage I']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_1']
+            temp[names['adv adenoma'], 
+                 names['init dx stage II']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_2']
+            temp[names['adenoma'], 
+                 names['init dx stage III']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_3']
+            temp[names['adv adenoma'], 
+                 names['init dx stage IV']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_4']
+            
+            temp[names['init adv adenoma'], 
+                 names['init dx stage I']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_1']
+            temp[names['init adv adenoma'], 
+                 names['init dx stage II']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_2']
+            temp[names['init adv adenoma'], 
+                 names['init dx stage III']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_3']
+            temp[names['init adv adenoma'], 
+                 names['init dx stage IV']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_4']
+
+
+            
             ##probabilities for normal -> dx
             temp[names[this_run_spec.guidelines],
                  names['init dx stage I']] = dx_risk_prob * ps.staging.loc[this_run_spec.interval, 'stage_1']
@@ -383,23 +383,23 @@ def create_t_matrix(run_spec, time = ps.time, age_0 = ps.START_AGE):
 # =============================================================================
 #             CHANGE THESE PROBABILITIES
 # =============================================================================
-#            temp[names['adv adenoma'], 
-#                 names['init dx stage I']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_1']
-#            temp[names['adv adenoma'], 
-#                 names['init dx stage II']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_2']
-#            temp[names['adenoma'], 
-#                 names['init dx stage III']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_3']
-#            temp[names['adv adenoma'], 
-#                 names['init dx stage IV']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_4']
-#            
-#            temp[names['init adv adenoma'], 
-#                 names['init dx stage I']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_1']
-#            temp[names['init adv adenoma'], 
-#                 names['init dx stage II']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_2']
-#            temp[names['init adv adenoma'], 
-#                 names['init dx stage III']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_3']
-#            temp[names['init adv adenoma'], 
-#                 names['init dx stage IV']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_4']
+            temp[names['adv adenoma'], 
+                 names['init dx stage I']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_1']
+            temp[names['adv adenoma'], 
+                 names['init dx stage II']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_2']
+            temp[names['adenoma'], 
+                 names['init dx stage III']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_3']
+            temp[names['adv adenoma'], 
+                 names['init dx stage IV']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_4']
+            
+            temp[names['init adv adenoma'], 
+                 names['init dx stage I']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_1']
+            temp[names['init adv adenoma'], 
+                 names['init dx stage II']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_2']
+            temp[names['init adv adenoma'], 
+                 names['init dx stage III']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_3']
+            temp[names['init adv adenoma'], 
+                 names['init dx stage IV']] = adn_dx_risk * ps.staging.loc[this_run_spec.interval, 'stage_4']
 
 
             

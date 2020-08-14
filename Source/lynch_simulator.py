@@ -817,15 +817,11 @@ def av_matrix_PSA(run_spec):
     return t_matrix
 
 
-def run_markov_simple(run_spec):
+def run_markov_simple(run_spec, t_matrix):
 #    print('In run_markov_simple..')
     states = ps.ALL_STATES
     age_0 = ps.START_AGE
-    
-    
     time = ps.time
-    t_matrix = av_matrix(run_spec)
-#    print(t_matrix)
     
     #if CSY start age != 25, start state is "nono", then flips to guidelines in for loop
     start_state = get_start_state(states, run_spec)
@@ -909,7 +905,7 @@ def run_markov_simple(run_spec):
     D_matrix['overall survival'] = overall_survival
     D_matrix['age'] = age
     D_matrix['csy tracker'] = csy_tracker
-    return D_matrix, t_matrix
+    return D_matrix
         
 
 def run_markov_PSA(run_spec):
@@ -1259,8 +1255,8 @@ def CRC_results_by_interval(genes = ps.genes, genders = ps.genders,
             cancer_df = pd.DataFrame()
             for i in intervals:
                 run_spec = ps.run_type(i, gene, this_gender.gender, age_spec = csy_start_age)
-            
-                D_matrix, t_matrix = run_markov_simple(run_spec)
+                t_matrix = av_matrix(run_spec)
+                D_matrix = run_markov_simple(run_spec, t_matrix)
                 
                 cancer_df[run_spec.interval_str] = D_matrix.loc[1:, 'cancer incidence']
                 
@@ -1341,7 +1337,8 @@ def OS_results_by_interval(genes = ps.genes, genders = ps.genders,
                 run_spec = ps.run_type(i, gene, this_gender.gender, 
                                        age_spec = csy_start_age)
             #this_gender = g.gender_obj(run_spec.gender)
-                D_matrix, t_matrix = run_markov_simple(run_spec)
+                t_matrix = av_matrix(run_spec)
+                D_matrix = run_markov_simple(run_spec, t_matrix)
                 
                 os_df[run_spec.interval_str] = D_matrix.loc[1:, 'overall survival']
             
@@ -1376,7 +1373,8 @@ def CD_results_by_interval(genes = ps.genes, genders = ps.genders,
                 run_spec = ps.run_type(i, gene, this_gender.gender, 
                                        age_spec = csy_start_age)
             #this_gender = g.gender_obj(run_spec.gender)
-                D_matrix, t_matrix = run_markov_simple(run_spec)
+                t_matrix = av_matrix(run_spec)
+                D_matrix = run_markov_simple(run_spec, t_matrix)
                 
                 cd_df[run_spec.interval_str] = D_matrix.loc[1:, 'cancer death']
             
@@ -1408,7 +1406,8 @@ def AC_results_by_interval(genes = ps.genes, genders = ps.genders,
                 run_spec = ps.run_type(i, gene, this_gender.gender, 
                                        age_spec = csy_start_age)
             #this_gender = g.gender_obj(run_spec.gender)
-                D_matrix, t_matrix = run_markov_simple(run_spec)
+                t_matrix = av_matrix(run_spec)
+                D_matrix = run_markov_simple(run_spec, t_matrix)
                 
                 D_temp = D_matrix.iloc[1:, :]
                 ac_df[run_spec.interval_str] = D_temp['all cause dx'] + D_temp['all cause']
@@ -1511,7 +1510,8 @@ def CD_optimal_only():
             age_start = run_info[1]
             print(interval, age_start)
             run_spec = ps.run_type(interval, gene, ps.genders[0], age_spec = age_start)
-            D_matrix, t_mat = run_markov_simple(run_spec)
+            t_mat = av_matrix(run_spec)
+            D_matrix = run_markov_simple(run_spec, t_mat)
             cancer_df[run_spec.label] = D_matrix.loc[1:, 'cancer death']
             if k == 0:
                 least_agro = run_spec.label
@@ -1551,7 +1551,8 @@ def CD_natural_history():
             age_start = run_info[1]
             print(interval, age_start)
             run_spec = ps.run_type(interval, gene, ps.genders[0], age_spec = age_start)
-            D_matrix, t_mat = run_markov_simple(run_spec)
+            t_mat = av_matrix(run_spec)
+            D_matrix = run_markov_simple(run_spec, t_mat)
             cancer_df[run_spec.label] = D_matrix.loc[1:, 'cancer death']
             if k == 0:
                 least_agro = run_spec.label
@@ -1629,7 +1630,8 @@ def CRC_optimal_only():
             age_start = run_info[1]
             print(interval, age_start)
             run_spec = ps.run_type(interval, gene, ps.genders[0], age_spec = age_start)
-            D_matrix, t_mat = run_markov_simple(run_spec)
+            t_mat = av_matrix(run_spec)
+            D_matrix = run_markov_simple(run_spec, t_mat)
             cancer_df[run_spec.label] = D_matrix.loc[1:, 'cancer incidence']
             if k == 0:
                 least_agro = run_spec.label
@@ -1671,7 +1673,8 @@ def CRC_natural_history():
             age_start = run_info[1]
             print(interval, age_start)
             run_spec = ps.run_type(interval, gene, ps.genders[0], age_spec = age_start)
-            D_matrix, t_mat = run_markov_simple(run_spec)
+            t_mat = av_matrix(run_spec)
+            D_matrix = run_markov_simple(run_spec, t_mat)
             cancer_df[run_spec.label] = D_matrix.loc[1:, 'cancer incidence']
             if k == 0:
                 least_agro = run_spec.label
@@ -1716,7 +1719,8 @@ def CRC_MCLIR_natural_history(MCLIR_age):
             print(interval, age_start)
             run_spec = ps.run_type(interval, gene, ps.genders[0], age_spec = age_start)
             D_matrix_m, t_mat_m = run_markov_MCLIR(run_spec, MCLIR_age)
-            D_matrix, t_mat = run_markov_simple(run_spec)
+            t_mat = av_matrix(run_spec)
+            D_matrix = run_markov_simple(run_spec, t_mat)
             cancer_df_m[run_spec.label] = D_matrix_m.loc[1:, 'cancer incidence']
             cancer_df[run_spec.label] = D_matrix.loc[1:, 'cancer incidence']
             if k == 0:
@@ -1763,7 +1767,8 @@ def CRC_MCLIR_nat_hist_perc(MCLIR_age):
             print(interval, age_start)
             run_spec = ps.run_type(interval, gene, ps.genders[0], age_spec = age_start)
             D_matrix_m, t_mat_m = run_markov_MCLIR(run_spec, MCLIR_age)
-            D_matrix, t_mat = run_markov_simple(run_spec)
+            t_mat = av_matrix(run_spec)
+            D_matrix = run_markov_simple(run_spec, t_mat)
             cancer_df_m[run_spec.label] = D_matrix_m.loc[1:, 'cancer incidence']
             cancer_df[run_spec.label] = D_matrix.loc[1:, 'cancer incidence']
             if k == 0:
@@ -1800,7 +1805,8 @@ def CRC_results_by_age(genes = ps.genes, genders = ps.genders,
             run_spec = ps.run_type(interval, gene, this_gender.gender, 
                                        age_spec = 25)
             #this_gender = g.gender_obj(run_spec.gender)
-            D_matrix, t_matrix = run_markov_simple(run_spec)
+            t_matrix = av_matrix(run_spec)
+            D_matrix = run_markov_simple(run_spec, t_matrix)
                 
             cancer_df[str(run_spec.gene)] = D_matrix.loc[1:, 'cancer death']
             
@@ -1846,7 +1852,8 @@ def CD_results_by_age(genes = ps.genes, genders = ps.genders,
                 run_spec = ps.run_type(interval, gene, this_gender.gender, 
                                        age_spec = i)
             #this_gender = g.gender_obj(run_spec.gender)
-                D_matrix, t_matrix = run_markov_simple(run_spec)
+                t_matrix = av_matrix(run_spec)
+                D_matrix = run_markov_simple(run_spec, t_matrix)
                 
                 cd_df[str(run_spec.start_age)] = D_matrix.loc[1:, 'cancer death']
             
@@ -1892,7 +1899,8 @@ def OS_results_by_age(genes = ps.genes, genders = ps.genders,
             for i in csy_start_ages:
                 run_spec = ps.run_type(interval, gene, this_gender.gender, 
                                        age_spec = i)
-                D_matrix, t_matrix = run_markov_simple(run_spec)
+                t_matrix = av_matrix(run_spec)
+                D_matrix = run_markov_simple(run_spec, t_matrix)
                 
                 os_df[str(run_spec.start_age)] = D_matrix.loc[1:, 'overall survival']
             
@@ -1932,7 +1940,8 @@ def AC_results_by_age(genes = ps.genes, genders = ps.genders,
                 run_spec = ps.run_type(interval, gene, this_gender.gender, 
                                        age_spec = i)
             #this_gender = g.gender_obj(run_spec.gender)
-                D_matrix, t_matrix = run_markov_simple(run_spec)
+                t_matrix = av_matrix(run_spec)
+                D_matrix = run_markov_simple(run_spec, t_matrix)
                 
                 D_temp = D_matrix.iloc[1:, :]
                 ac_df[str(run_spec.start_age)] = D_temp['all cause dx'] + D_temp['all cause']
@@ -2066,7 +2075,8 @@ def generate_output(gender, intervals = ps.intervals):
                 #if the file already exists, returns filename w/o running whole simulation
 #                if pf.check_valid_file(file_name) == False or overwrite_file == True:
 #                    print('no valid file for run type, creating new one')
-                D_matrix, t_matrix = run_markov_simple(run_spec)
+                t_matrix = av_matrix(run_spec)
+                D_matrix = run_markov_simple(run_spec, t_matrix)
 #                filename_t = ("t_matrix_"+run_spec.gene + "_" + str(run_spec.interval)
 #                            + "_" + str(run_spec.start_age) + "_both_genders.csv")
 #                    D_matrix.to_csv(file_name, index = False)
@@ -2196,7 +2206,8 @@ def generate_output_lite_interval(genders = ps.genders, genes = ps.genes,
                 file_append = run_spec.gene + '_' + run_spec.interval_str + '_' + gender +'_'+str(run_spec.start_age) + '_death.csv'
                 file_name = 'D_matrix_' + file_append
                 if pf.check_valid_file(file_name) == False or overwrite_file == True:
-                    D_matrix, t_matrix = run_markov_simple(run_spec)
+                    t_matrix = av_matrix(run_spec)
+                    D_matrix = run_markov_simple(run_spec, t_matrix)
                     D_matrix.to_csv(file_name, index = False)
                     
                 if gender == genders[0] and gene == genes[0] and i == 0:
@@ -2220,7 +2231,8 @@ def generate_output_lite_start_age(genders = ps.genders, genes = ps.genes,
                 file_name = 'D_matrix_' + file_append
                 
                 if pf.check_valid_file(file_name) == False or overwrite_file == True:
-                    D_matrix, t_matrix = run_markov_simple(run_spec)
+                    t_matrix = av_matrix(run_spec)
+                    D_matrix = run_markov_simple(run_spec, t_matrix)
                     D_matrix.to_csv(file_name, index = False)
                     
                 if gender == genders[0] and gene == genes[0] and i == 0:

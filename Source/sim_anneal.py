@@ -7,46 +7,23 @@ Created for gastric cancer immunotherapy project.
 
 # Simulated annealing algorithm
 # Functions:
-    # generate_new_params: creates random t_matrix
+    # generate_rand_t_matrix: creates random t_matrix based on previous t_matrix
     # gof: compares model output to target data (chi-square test)
+    # calc_total_gof: calculates total gof value, summing adenoma, advanced adenoma, and crc gof
     # acceptance_prob: gives acceptance probability based on change in gof and T
         # (higher T -> lower prob -> less likely to accept; and vice versa)
-    # anneal_markov: runs the model to get the output
-    # anneal: runs the simulated annealing
+    # anneal: runs the simulated annealing algorithm
 
 # NOTES:
     # There are different transition probabilities for transitioning out of healthy states depending on
         # screening schedule
         # The transition probabilities out of the new state are proportions of the transition
             # probabilities out of the current state
-    # Calibrate each genotype separately
-    # What will our target data be? Adenoma incidence by age, cancer incidence by age (for each stage?),
-    #   cancer death by age? Each of these specific to the genotype?
-    # Which transition probabilities are set vs calibrated? Look at connectivity matrix as guide.
-        # Set: all-cause mortality, colonoscopy mortality, cancer mortality
-        # Calibrated: all others
-    # Will we only be calibrating the natural history?
-        # We can calibrate the existence of true states.
-        # The screening model would then have likelihoods for detecting true states.
-    # How to decide randomization bounds for transition probabilities?
 
 # TODO:
-    # Edits sim.run_markov_simple to input t_matrix
-    # create_t_matrix won't be needed anymore?
-    # Subset model output by test_ages for comparison to target data
-    # Review t_matrix that Myles sends and set semi-random transition probabilities
-        # New plan: vary current t_matrices randomly by +/-30%
-
-# OUTLINE:
-    # generate_rand_t_matrix() will generate an initial transition matrix for the simulated 
-    #   annealing algorithm. Some transition probabilities may be fixed (depending on data).
-    #   Other transition probabilities will be randomly selected within bounds. Make sure to
-    #   normalize probabilities so they add to 1.
-    # Create a run_markov() function in lynch_simulator.py that inputs the t_matrix and can be
-    #   used for both running the model and running the calibration. Outputs distribution matrix.
-    # Create numpy arrays of target data (adenoma, cancer, and death?)
-    # Subset distrubition matrix to create numpy arrays of observed data corresponding to target data.
-    # Calculate gof between each set of target and observed data and sum.
+    # sim.create_t_matrix won't be needed anymore?
+    # Create t_matrices with all the new states -> randomize by +/-30%
+    # Calibrate each genotype, natural history and current
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -102,7 +79,7 @@ def select_new_prob(step, old_prob):
     new_prob = np.random.uniform(old_prob-old_prob*step, old_prob+old_prob*step)
     return new_prob
 
-def generate_rand_t_matrix(run_spec, current_t_matrix, step): 
+def generate_rand_t_matrix(run_spec, current_t_matrix, step = 0.3): 
     # Input: run specifications, current transition matrix, proportion to change t_matrix (between 0 and 1)
     # Output: somewhat random t_matrix
     
@@ -162,36 +139,37 @@ def gof(obs, exp):
     chi_sq = sum(chi)
     return chi_sq
 
-def acceptance_prob(old_gof, new_gof, T):
-    return np.exp((old_gof - new_gof) / T)
-
-def anneal(run_spec):
-    
-    # find first solution
-    t_matrix = generate_rand_t_matrix(run_spec)
-    d_matrix = sim.run_markov_simple(run_spec, t_matrix)
-
-    # Calculate gof
-    # TODO: fix subsetting by age (cumulative_sum_state does not output age)
+def calc_total_gof(run_spec, d_matrix):
     # Adenoma
     adn_model = sim.cumulative_sum_state(d_matrix, 'init adenoma')
-    adn_model = adn_model[adn_model.age in test_ages]
-    adn_gof = gof(adn_model, adenoma_target)
+    adn_model = adn_model[adn_model['age'].isin(test_ages)]
+    adn_gof = gof(adn_model, adenoma_target[run_spec.gene])
     # Advanced adenoma
     adv_adn_model = sim.cumulative_sum_state(d_matrix, 'init adv adenoma')
-    adv_adn_model = adv_adn_model[adv_adn_model.age in test_ages]
-    adv_adn_gof = gof(adv_adn_model, adv_adenoma_target)
+    adv_adn_model = adv_adn_model[adv_adn_model['age'].isin(test_ages)]
+    adv_adn_gof = gof(adv_adn_model, adv_adenoma_target[run_spec.gene])
     # Cancer
     cancer_states = [
         'init dx stage I', 'init dx stage II', 'init dx stage III', 'init dx stage IV']
     crc_model = np.zeros(len(test_ages))
     for state in cancer_states:
         temp = sim.cumulative_sum_state(d_matrix, state)
-        temp = temp[temp.age in test_ages]
+        temp = temp[temp['age'].isin(test_ages)]
         crc_model += temp
     crc_gof = gof(crc_model, crc_target)
-    old_gof = adn_gof + adv_adn_gof + crc_gof
-    best_t_matrix = t_matrix
+    return (adn_gof + adv_adn_gof + crc_gof)
+
+def acceptance_prob(old_gof, new_gof, T):
+    return np.exp((old_gof - new_gof) / T)
+
+def anneal(run_spec, init_t_matrix):
+    
+    # find first solution
+    t_matrix = generate_rand_t_matrix(run_spec, init_t_matrix)
+    d_matrix = sim.run_markov_simple(run_spec, t_matrix)
+
+    # Calculate gof
+    old_gof = calc_total_gof(run_spec, d_matrix)
     
     T = sim_anneal_params['starting_T']
 
@@ -203,40 +181,21 @@ def anneal(run_spec):
         for i in range(sim_anneal_params['iterations']):
 
             # find new candidate solution
-            new_params = generate_new_params(ps.ALL_STATES, ps.CONNECTIVITY, time, Tx)
-            OS_model, PFS_model = anneal_markov(ps.ALL_STATES, time, new_params)
-            model_out = np.append(OS_model, PFS_model)
+            new_t_matrix = generate_rand_t_matrix(run_spec, t_matrix)
+            d_matrix = sim.run_markov_simple(run_spec, new_t_matrix)
                 
-            new_gof = gof(model_out, trial_out)
+            new_gof = calc_total_gof(run_spec, d_matrix)
             ap =  acceptance_prob(old_gof, new_gof, T)
                 
             # decide if the new solution is accepted
             if np.random.uniform() < ap:
-                best_params = new_params
+                t_matrix = new_t_matrix
                 old_gof = new_gof
-#                final_OS = OS_model
-#                final_PFS = PFS_model
                 print(T, i)
-                plt.plot(time, KM_OS, 'o')
-                plt.plot(time, KM_PFS, 'o')
-                plt.plot(time, OS_model)
-                plt.plot(time, PFS_model)
-                plt.show()
-#                all_t_matrices['gof'].append(old_gof)
-#                all_t_matrices['t_matrices'].append(best_params)
-#                all_t_matrices['OS_model'].append(OS_model)
-#                all_t_matrices['PFS_model'].append(PFS_model)
 
         T = T * sim_anneal_params['cooling_rate']
-        
-#    print(T, i)
-#    plt.plot(time, KM_OS, 'o')
-#    plt.plot(time, KM_PFS, 'o')
-#    plt.plot(time, final_OS)
-#    plt.plot(time, final_PFS)
-#    plt.show()
     
-    return best_params#, all_t_matrices
+    return t_matrix
 
 def save_t_matrix(t_matrix_path, t_matrix):
     # Input: path to transition matrix npy file; output from anneal function

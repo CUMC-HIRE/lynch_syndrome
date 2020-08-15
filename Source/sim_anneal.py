@@ -35,6 +35,7 @@ Created for gastric cancer immunotherapy project.
     # create_t_matrix won't be needed anymore?
     # Subset model output by test_ages for comparison to target data
     # Review t_matrix that Myles sends and set semi-random transition probabilities
+        # New plan: vary current t_matrices randomly by +/-30%
 
 # OUTLINE:
     # generate_rand_t_matrix() will generate an initial transition matrix for the simulated 
@@ -97,130 +98,53 @@ for gene in ps.genes:
     crc = crc_target_raw[gene]
     crc_target[gene] = np.interp(test_ages, crc.Age, crc.Cumul_prob)
 
-def generate_rand_t_matrix(run_spec): 
-    # Input: natural history, current screening guidelines, or new screening guidelines
-        # ('nono', 'current', 'new')
+def select_new_prob(step, old_prob):
+    new_prob = np.random.uniform(old_prob-old_prob*step, old_prob+old_prob*step)
+    return new_prob
+
+def generate_rand_t_matrix(run_spec, current_t_matrix, step): 
+    # Input: run specifications, current transition matrix, proportion to change t_matrix (between 0 and 1)
     # Output: somewhat random t_matrix
-    
-    # ASSUMPTIONS:
-        # Probabilities of remaining in SD and PD states increase over time
-        # Probability of dying from cancer decreases over time
-        # Probability of progressing decreases over time
     
     states = ps.ALL_STATES
     state_names = dm.flip(ps.ALL_STATES)
     time = ps.time
-    this_gender = g.gender_obj(run_spec.gender)
-    
-    for t in time:
-        # Initialize t_matrix for time, t
-        t_layer = np.zeros((len(states), len(states)))
-        # Calculate age
-        age = t + ps.START_AGE
-        
-        ### Set constant probabilities (not calibrated)
-        # All-cause mortality
-        all_cause_states = [
-            state_names["current"], state_names["new"], state_names["nono"],
-            state_names["init adenoma"], state_names["adenoma"],state_names["init adv adenoma"],
-            state_names["init adv adenoma"]]
-        all_cause_dx_states = [
-            state_names['init dx stage I'],
-            state_names['init dx stage II'], state_names['init dx stage III'],
-            state_names['init dx stage IV'], state_names['dx stage I'],
-            state_names['dx stage II'], state_names['dx stage III'],
-            state_names['dx stage IV']]
-        for i in all_cause_states:
-            t_layer[i, state_names["all cause"]] = this_gender.lynch_ac_mortality[age]
-        for i in all_cause_dx_states:
-            t_layer[i, state_names['all cause dx']] = this_gender.lynch_ac_mortality[age]
-        # Colonoscopy mortality
-        csy_death_states = [
-            state_names['current'], state_names['new'], state_names['init adenoma'],
-            state_names['adenoma'], state_names["init adv adenoma"],
-            state_names["init adv adenoma"]]
-        for i in csy_death_states:
-            if run_spec.guidelines != 'nono':
-                t_layer[i, state_names['csy death']] = ps.p_csy_death
-            # else: no colonoscopy during natural history -> prob remains 0
-        # Cancer mortality
-        # Colectomy death is set as stage 1 death
-        if age < 60:
-            colectomy_death = ps.colectomy_death_risk[0]
-        elif age < 70:
-            colectomy_death = ps.colectomy_death_risk[1]
-        else:
-            colectomy_death = ps.colectomy_death_risk[2]
-        t_layer[state_names['init dx stage I'], state_names['stage I death']] = colectomy_death
-        stage_2_death, stage_3_death, stage_4_death = pf.get_cancer_death_probs(age, this_gender)
-        t_layer[state_names['dx stage II'], state_names['stage II death']] = stage_2_death
-        t_layer[state_names['init dx stage II'], state_names['stage II death']] = stage_2_death
-        t_layer[state_names['dx stage III'], state_names['stage III death']] = stage_3_death
-        t_layer[state_names['init dx stage III'], state_names['stage III death']] = stage_3_death
-        t_layer[state_names['dx stage IV'], state_names['stage IV death']] = stage_4_death
-        t_layer[state_names['init dx stage IV'], state_names['stage IV death']] = stage_4_death
-
-        ### Randomize remaining probabilities
-        # Normal -> adenoma/advanced adenoma (does not apply to natural history)
-        t_layer[state_names[run_spec.guidelines], state_names['init adenoma']] = risk_adn
+    # List of transitions to change
+    trans_to_change = [
+        # Normal -> adenoma
+        [state_names[run_spec.guidelines], state_names['init adenoma']],
+        [state_names[run_spec.guidelines], state_names['init adv adenoma']],
         # Normal -> cancer
-        t_layer[state_names[run_spec.guidelines],
-                state_names['init dx stage I']] = dx_risk_prob * ps.staging.loc[run_spec.interval, 'stage_1']
-        t_layer[state_names[run_spec.guidelines], 
-                state_names['init dx stage II']] = dx_risk_prob * ps.staging.loc[run_spec.interval, 'stage_2'] 
-        t_layer[state_names[run_spec.guidelines], 
-                state_names['init dx stage III']] = dx_risk_prob * ps.staging.loc[run_spec.interval, 'stage_3'] 
-        t_layer[state_names[run_spec.guidelines], 
-                state_names['init dx stage IV']] = dx_risk_prob * ps.staging.loc[run_spec.interval, 'stage_4'] 
+        [state_names[run_spec.guidelines], state_names['init dx stage I']],
+        [state_names[run_spec.guidelines], state_names['init dx stage II']],
+        [state_names[run_spec.guidelines], state_names['init dx stage III']],
+        [state_names[run_spec.guidelines], state_names['init dx stage IV']],
+        # Adenoma -> advanced adenoma
+        [state_names['init adenoma'], state_names['init adv adenoma']],
+        # Adenoma -> cancer
+        [state_names['init adenoma'], state_names['init dx stage I']],
+        [state_names['init adenoma'], state_names['init dx stage II']],
+        [state_names['init adenoma'], state_names['init dx stage III']],
+        [state_names['init adenoma'], state_names['init dx stage IV']],
+        # Advanced adenoma -> cancer
+        [state_names['init adv adenoma'], state_names['init dx stage I']],
+        [state_names['init adv adenoma'], state_names['init dx stage II']],
+        [state_names['init adv adenoma'], state_names['init dx stage III']],
+        [state_names['init adv adenoma'], state_names['init dx stage IV']],
+    ]
 
-        # Adenoma/advanced adenoma -> advanced adenoma or cancer
-        t_layer[state_names['adenoma'], state_names['init adv adenoma']] = 1 - this_gender.lynch_ac_mortality[age] - adn_dx_risk - csy_death_risk
-        t_layer[state_names['adenoma'], 
-                state_names['init dx stage I']] = adn_dx_risk * ps.staging.loc[run_spec.interval, 'stage_1']
-        t_layer[state_names['adenoma'], 
-                state_names['init dx stage II']] = adn_dx_risk * ps.staging.loc[run_spec.interval, 'stage_2']
-        t_layer[state_names['adenoma'], 
-                state_names['init dx stage III']] = adn_dx_risk * ps.staging.loc[run_spec.interval, 'stage_3']
-        t_layer[state_names['adenoma'], 
-                state_names['init dx stage IV']] = adn_dx_risk * ps.staging.loc[run_spec.interval, 'stage_4']
-        
-        t_layer[state_names['init adenoma'], 
-                state_names['init dx stage I']] = adn_dx_risk * ps.staging.loc[run_spec.interval, 'stage_1']
-        t_layer[state_names['init adenoma'], 
-                state_names['init dx stage II']] = adn_dx_risk * ps.staging.loc[run_spec.interval, 'stage_2']
-        t_layer[state_names['init adenoma'], 
-                state_names['init dx stage III']] = adn_dx_risk * ps.staging.loc[run_spec.interval, 'stage_3']
-        t_layer[state_names['init adenoma'], 
-                state_names['init dx stage IV']] = adn_dx_risk * ps.staging.loc[run_spec.interval, 'stage_4']
-            
-        # Normalize probs before adding constant probabilities
-        # Set all constant probabilities to zero initially
-        t_layer[1, 3] = 0
-        t_layer[1, 4] = 0
-        t_layer[2, 4] = 0
-        t_layer[1, 5] = 0
-        t_layer[2, 5] = 0
-        
-        # Normalize random probs so that they add up to 1 after constant probs are added
-        t_layer[1] = use.normalize_choose(t_layer[1], 
-               1 - ps.cut_ac_mortality[t] - SD_c_death - trae_death)
-        t_layer[2] = use.normalize_choose(t_layer[2], 
-               1 - ps.cut_ac_mortality[t] - PD_c_death)
-        
-         # Known probabilities that remain constant
-        # TRAE death (assume only in the first 6 months, and only in SD)
-        t_layer[1, 3] = trae_death
-        # All-cause death
-        t_layer[1, 4] = ps.cut_ac_mortality[t]
-        t_layer[2, 4] = ps.cut_ac_mortality[t]
-        # Cancer-related death
-        t_layer[1, 5] = SD_c_death
-        t_layer[2, 5] = PD_c_death
-        
-        # Check that rows add up to 1
-        # print(sum(t_layer[1]))
-        # print(sum(t_layer[2]))
-
+    for t in time:
+        t_layer = current_t_matrix[t,:,:].copy()
+        for trans in trans_to_change:
+            t_layer[trans[0], trans[1]] = select_new_prob(step, t_layer[trans[0], trans[1]])
+        # Normalize probabilities, excluding probabilities that are not calibrated
+        for row in range(14):
+            # Normalize row, keeping all transitions to death states static
+            pf.normalize_static(t_layer[row], [range(14,22)])
+        # Normalize death state rows such that all transitions other than same -> same == 0
+        for row in range(14, 18):
+            pf.normalize(t_layer[row], row)
+        # Stack t_layers to create full t_matrix
         if t == 0:
             t_matrix = t_layer
         else:
@@ -228,7 +152,6 @@ def generate_rand_t_matrix(run_spec):
 
     # Create 3D matrix
     t_matrix = np.reshape(t_matrix, (len(time), len(states), len(states)))
-    # print(t_matrix[5])
 
     return t_matrix
 

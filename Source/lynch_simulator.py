@@ -2276,7 +2276,9 @@ def cumulative_sum_state(D_matrix, state):
         else:
             sum_val = state_vals[idx] + cml_vals[idx-1]
             cml_vals.append(sum_val)
-    return cml_vals
+    # Create data frame with age values
+    cml_vals_df = pd.DataFrame({'age': range(ps.START_AGE, ps.START_AGE+len(cml_vals)), 'cml_val': cml_vals})
+    return cml_vals_df
         
         
         

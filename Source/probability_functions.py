@@ -195,7 +195,6 @@ def normalize_static(row, static):
     '''
     # sum without static
     new_sum = 1 - sum([row[i] for i in static])
-    print(row)
     # gives array excluding static
     new_row = [x for i, x in enumerate(row) if i not in static]
     exclude_sum = sum(new_row)

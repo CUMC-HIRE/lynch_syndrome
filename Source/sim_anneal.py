@@ -1,33 +1,15 @@
-# -*- coding: utf-8 -*-
+# Calibration via simulated annealing
 """
-Created on Fri Oct 19 15:57:24 2018
-Created for gastric cancer immunotherapy project.
-@author: bnl2108
+First working version: August 18, 2020
+Authors: Brianna Lauren, Myles Ingram
 """
-
-# Simulated annealing algorithm
-# Functions:
-    # generate_rand_t_matrix: creates random t_matrix based on previous t_matrix
-    # gof: compares model output to target data (chi-square test)
-    # calc_total_gof: calculates total gof value, summing adenoma, advanced adenoma, and crc gof
-    # acceptance_prob: gives acceptance probability based on change in gof and T
-        # (higher T -> lower prob -> less likely to accept; and vice versa)
-    # anneal: runs the simulated annealing algorithm
-
-# NOTES:
-    # There are different transition probabilities for transitioning out of healthy states depending on
-        # screening schedule
-        # The transition probabilities out of the new state are proportions of the transition
-            # probabilities out of the current state
-
-# TODO:
-    # sim.create_t_matrix won't be needed anymore?
-    # Create t_matrices with all the new states -> randomize by +/-30%
-    # Calibrate each genotype, natural history and current
+# TODO: how to calibrate natural history?
 
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+from timeit import default_timer as timer
+from datetime import timedelta
 import lynch_presets as ps
 import lynch_simulator as sim
 import data_manipulation as dm
@@ -36,8 +18,8 @@ import probability_functions as pf
 
 sim_anneal_params = {
     'starting_T': 1.0,
-    'final_T': 0.001,
-    'cooling_rate': 0.9,
+    'final_T': 0.01,
+    'cooling_rate': 0.5,
     'iterations': 100}
 
 # Ages to compare target and model output data
@@ -76,38 +58,58 @@ for gene in ps.genes:
     crc_target[gene] = np.interp(test_ages, crc.Age, crc.Cumul_prob)
 
 def select_new_prob(step, old_prob):
+    # Selects new probability within range old_prob +/- step%
+    # Input: proportion to change probability (between 0 and 1), old probability
+    # Output: new probability
     new_prob = np.random.uniform(old_prob-old_prob*step, old_prob+old_prob*step)
     return new_prob
 
 def generate_rand_t_matrix(run_spec, current_t_matrix, step = 0.3): 
+    # Creates random t_matrix based on previous t_matrix
     # Input: run specifications, current transition matrix, proportion to change t_matrix (between 0 and 1)
     # Output: somewhat random t_matrix
-    
     states = ps.ALL_STATES
     state_names = dm.flip(ps.ALL_STATES)
     time = ps.time
     # List of transitions to change
     trans_to_change = [
+        # Normal -> normal
+        [state_names[run_spec.guidelines], state_names[run_spec.guidelines]],
         # Normal -> adenoma
         [state_names[run_spec.guidelines], state_names['init adenoma']],
         [state_names[run_spec.guidelines], state_names['init adv adenoma']],
+        # Adenoma -> adenoma
+        [state_names['init adenoma'], state_names['adenoma']],
+        [state_names['init adenoma'], state_names['init adv adenoma']],
+        [state_names['adenoma'], state_names['init adv adenoma']],
+        [state_names['init adv adenoma'], state_names['adv adenoma']],
+        [state_names['adenoma'], state_names['adenoma']],
+        [state_names['adv adenoma'], state_names['adv adenoma']],
         # Normal -> cancer
         [state_names[run_spec.guidelines], state_names['init dx stage I']],
         [state_names[run_spec.guidelines], state_names['init dx stage II']],
         [state_names[run_spec.guidelines], state_names['init dx stage III']],
         [state_names[run_spec.guidelines], state_names['init dx stage IV']],
-        # Adenoma -> advanced adenoma
-        [state_names['init adenoma'], state_names['init adv adenoma']],
         # Adenoma -> cancer
         [state_names['init adenoma'], state_names['init dx stage I']],
         [state_names['init adenoma'], state_names['init dx stage II']],
         [state_names['init adenoma'], state_names['init dx stage III']],
         [state_names['init adenoma'], state_names['init dx stage IV']],
+        [state_names['adenoma'], state_names['init dx stage I']],
+        [state_names['adenoma'], state_names['init dx stage II']],
+        [state_names['adenoma'], state_names['init dx stage III']],
+        [state_names['adenoma'], state_names['init dx stage IV']],
         # Advanced adenoma -> cancer
         [state_names['init adv adenoma'], state_names['init dx stage I']],
         [state_names['init adv adenoma'], state_names['init dx stage II']],
         [state_names['init adv adenoma'], state_names['init dx stage III']],
         [state_names['init adv adenoma'], state_names['init dx stage IV']],
+        [state_names['adv adenoma'], state_names['init dx stage I']],
+        [state_names['adv adenoma'], state_names['init dx stage II']],
+        [state_names['adv adenoma'], state_names['init dx stage III']],
+        [state_names['adv adenoma'], state_names['init dx stage IV']]
+        # Cancer -> cancer does not need to be calibrated because 
+        # the only other transitions are to death states, which are fixed
     ]
 
     for t in time:
@@ -117,7 +119,7 @@ def generate_rand_t_matrix(run_spec, current_t_matrix, step = 0.3):
         # Normalize probabilities, excluding probabilities that are not calibrated
         for row in range(14):
             # Normalize row, keeping all transitions to death states static
-            pf.normalize_static(t_layer[row], [range(14,22)])
+            pf.normalize_static(t_layer[row], list(range(14,22)))
         # Normalize death state rows such that all transitions other than same -> same == 0
         for row in range(14, 18):
             pf.normalize(t_layer[row], row)
@@ -140,14 +142,15 @@ def gof(obs, exp):
     return chi_sq
 
 def calc_total_gof(run_spec, d_matrix):
+    # Calculates and sums gof values for adenoma, advanced adenoma, and cancer incidence
     # Adenoma
     adn_model = sim.cumulative_sum_state(d_matrix, 'init adenoma')
     adn_model = adn_model[adn_model['age'].isin(test_ages)]
-    adn_gof = gof(adn_model, adenoma_target[run_spec.gene])
+    adn_gof = gof(np.array(adn_model.cml_val), adenoma_target[run_spec.gene])
     # Advanced adenoma
     adv_adn_model = sim.cumulative_sum_state(d_matrix, 'init adv adenoma')
     adv_adn_model = adv_adn_model[adv_adn_model['age'].isin(test_ages)]
-    adv_adn_gof = gof(adv_adn_model, adv_adenoma_target[run_spec.gene])
+    adv_adn_gof = gof(np.array(adv_adn_model.cml_val), adv_adenoma_target[run_spec.gene])
     # Cancer
     cancer_states = [
         'init dx stage I', 'init dx stage II', 'init dx stage III', 'init dx stage IV']
@@ -155,12 +158,15 @@ def calc_total_gof(run_spec, d_matrix):
     for state in cancer_states:
         temp = sim.cumulative_sum_state(d_matrix, state)
         temp = temp[temp['age'].isin(test_ages)]
-        crc_model += temp
-    crc_gof = gof(crc_model, crc_target)
+        crc_model += np.array(temp.cml_val)
+    crc_gof = gof(crc_model, crc_target[run_spec.gene])
     return (adn_gof + adv_adn_gof + crc_gof)
 
 def acceptance_prob(old_gof, new_gof, T):
-    return np.exp((old_gof - new_gof) / T)
+    if new_gof < old_gof:
+        return 1
+    else:
+        return np.exp((old_gof - new_gof) / T)
 
 def anneal(run_spec, init_t_matrix):
     
@@ -200,3 +206,13 @@ def anneal(run_spec, init_t_matrix):
 def save_t_matrix(t_matrix_path, t_matrix):
     # Input: path to transition matrix npy file; output from anneal function
     np.save(t_matrix_path, t_matrix)
+
+# Calibrate current screening recommendations
+# TODO: create a for loop for each gene; graph final output and target data
+start = timer()
+run_spec = ps.run_type(1, 'PMS2', 'both')
+init_t_matrix = np.load('../current_t_matrix/t_matrix_PMS2_1_25_new_both_genders.csv.npy')
+t_matrix = anneal(run_spec, init_t_matrix)
+save_t_matrix('../current_t_matrix/anneal_test_PMS2.npy', t_matrix)
+end = timer()
+print(f'total time: {timedelta(seconds=end-start)}')

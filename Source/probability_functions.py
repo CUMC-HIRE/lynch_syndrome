@@ -190,25 +190,24 @@ def normalize_target(row, row_index):
     
 def normalize_static(row, static):
     '''
-    keeps one value (static) static while normalizes all other values in a 
-    given array
+    keeps certain values (static) static while normalizes all other values in a 
+    given array. static must be a list (but can contain a single value)
     '''
     # sum without static
-    new_sum = 1 - row[static]
-    print(row)
+    new_sum = 1 - sum([row[i] for i in static])
     # gives array excluding static
-    new_row = [x for i, x in enumerate(row) if i!= static]
+    new_row = [x for i, x in enumerate(row) if i not in static]
     exclude_sum = sum(new_row)
     # the new_sum divided by the sum of all elements except static
     norm_ratio = new_sum/exclude_sum
     # normalizes all elements that are not statuc
     for i in range(len(row)):
-        if i != static:
+        if i not in static:
             row[i] = norm_ratio * row[i]
             
     if round(sum(row), 10) != 1:
-#        print(sum(row))
-#        print("ERROR: sum of array exceeds 1")
+        print(sum(row))
+        print("ERROR: sum of array exceeds 1")
         return 
         
     return row

@@ -85,19 +85,19 @@ ALL_STATES = {0: 'mutation', # step 0 in all models
               18: 'stage I death', # last year of life having CRC stage I
               19: 'stage II death', # last year of lif having CRC stage II
               20: 'stage III death', # last year of life having CRC stage III
-              21: 'stage IV death', # last year of life having CRC stage IV
-              22: 'init adv adenoma', # initial adv adenoma found
-              23: 'adv adenoma' # previously had advance adenoma on last csy
+              21: 'stage IV death' # last year of life having CRC stage IV
+#              22: 'init adv adenoma', # initial adv adenoma found
+#              23: 'adv adenoma' # previously had advance adenoma on last csy
               }
 
 
 # connects between states in the model
 CONNECTIVITY = {0: [1, 2, 3], # chooses which model (current, new, nono)
-                1: [1, 4, 6, 7, 8, 9, 15, 17, 22], 
-                2: [2, 4, 6, 7, 8, 9, 15, 17, 22], 
+                1: [1, 4, 6, 7, 8, 9, 15, 17], 
+                2: [2, 4, 6, 7, 8, 9, 15, 17], 
                 3: [3, 6, 7, 8, 9, 15], 
-                4: [5, 6, 7, 8, 9, 15, 17, 22],
-                5: [5, 6, 7, 8, 9, 15, 17, 22],
+                4: [5, 6, 7, 8, 9, 15, 17],
+                5: [5, 6, 7, 8, 9, 15, 17],
                 6: [10, 14, 18],
                 7: [11, 14, 19],
                 8: [12, 14, 20],
@@ -113,9 +113,9 @@ CONNECTIVITY = {0: [1, 2, 3], # chooses which model (current, new, nono)
                 18: [16],
                 19: [16],
                 20: [16],
-                21: [16],
-                22: [6, 7, 8, 9, 15, 17, 23],
-                23: [6, 7, 8, 9, 15, 17, 23]
+                21: [16]
+#                22: [6, 7, 8, 9, 15, 17, 23],
+#                23: [6, 7, 8, 9, 15, 17, 23]
                 }
 
 # class that gives the parameters for a certain run
@@ -200,8 +200,8 @@ srvl_crc = data_repo/'Survival_CRC.npy'
 #1-3 calculated as average of engel et al and 4-5 with jarvinen et al CI bounds
 #this combination seemed to produce the best results
 risk_ratios = { "0": "NONO",
-                "1": 0.215,
-                "2": 0.274,
+                "1": 0.215*1.02, #.215
+                "2": 0.274, #.274
                 "3": 0.304,
                 "4": 0.6,
                 "5": 0.829,
@@ -243,6 +243,15 @@ WTP = 100000
 colectomy_death_risk = [.03, .08, .06]
 
 # adenoma probs
+risk_adenoma_dict = {"MLH1":data_repo/"MLH1_Adenoma_Risk.csv",
+                   "MSH2":data_repo/"MSH2_Adenoma_Risk.csv",
+                   "MSH6":data_repo/"MSH6_Adenoma_Risk.csv",
+                   "PMS2":data_repo/"PMS2_Adenoma_Risk.csv"}
+adv_risk_adenoma_dict = {"MLH1": data_repo/"MLH1_Lynch_Adv_Adenoma_Engel.csv",
+                         "MSH2": data_repo/"MSH2_Lynch_Adv_Adenoma_Engel.csv",
+                         "MSH6": data_repo/"MSH6_Lynch_Adv_Adenoma_Engel.csv",
+                         "PMS2": data_repo/"MSH6_Lynch_Adv_Adenoma_Engel.csv"
+                            }
 risk_adenoma = .1 
 risk_adn_male_data = data_repo/'Adenoma_Risk.csv'
 risk_adn_female_data = data_repo/'female_adenoma_risk.csv'
@@ -283,7 +292,7 @@ dx_csy = costs.iloc[1, 0]
         
 # Utilities
 util = pd.read_excel(params_male, "Utilities", index_col=0)
-#these are the same sheets with different names
+# these are the same sheets with different names
 utils_f = pd.read_csv(data_repo/'full_util_table_f.csv')
 utils_m = pd.read_csv(data_repo/'full_util_table_f.csv')
 
@@ -335,3 +344,9 @@ def make_strat_list():
 #    print(strat_list)
     np.save("strat_list.npy", strat_list)
     return
+
+#output_dict = {'D_matrix_MLH1_1_25_both': pd.read_csv('../current_D_matrix/anneal_test_MLH1_D_matrix'),
+#               'D_matrix_MSH2_1_25_both': pd.read_csv('../current_D_matrix/anneal_test_MSH2_D_matrix'),
+#               'D_matrix_MSH6_1_25_both': pd.read_csv('../current_D_matrix/anneal_test_MSH6_D_matrix'),
+#               'D_matrix_PMS2_1_25_both': pd.read_csv('../current_D_matrix/anneal_test_PMS2_D_matrix')
+#        }
